@@ -5,6 +5,14 @@ paths:
   data_root: data
   reports_root: reports
 
+# Matching thresholds. Scoring reads these values and does not keep copies.
+# amount_tolerance is a decimal string. Zero means amounts must be equal.
+matching:
+  confirmed_threshold: 0.85
+  probable_threshold: 0.60
+  date_tolerance_days: 5
+  amount_tolerance: "0.00"
+
 # Tesseract language. Use a three-letter code, or join several with +.
 # Add a code to supported_languages when that tessdata pack is installed.
 ocr:

@@ -22,19 +22,21 @@ def _transaction(**overrides: object) -> Transaction:
         "amount": Decimal("19.90"),
         "currency": "EUR",
         "description": "CARD PAYMENT ACME",
-        "source_path": _SOURCE,
+        "source_file": _SOURCE,
     }
     payload.update(overrides)
     return Transaction.model_validate(payload)
 
 
 def test_outgoing_transaction_keeps_exact_amount() -> None:
-    transaction = _transaction(merchant="  Acme  ", source_page=2)
+    transaction = _transaction(merchant_raw="  Acme  ", source_page=2)
 
     assert transaction.amount == Decimal("19.90")
     assert transaction.currency == "EUR"
     assert transaction.direction is TransactionDirection.OUTGOING
-    assert transaction.merchant == "Acme"
+    assert transaction.merchant_raw == "Acme"
+    assert transaction.merchant_normalized == "ACME"
+    assert transaction.description == "CARD PAYMENT ACME"
     assert transaction.source_page == 2
     assert transaction.source_row is None
 
@@ -85,9 +87,10 @@ def test_required_text_rejects_blank_values(field: str) -> None:
 
 
 def test_blank_merchant_is_stored_as_missing() -> None:
-    transaction = _transaction(merchant="   ")
+    transaction = _transaction(merchant_raw="   ")
 
-    assert transaction.merchant is None
+    assert transaction.merchant_raw is None
+    assert transaction.merchant_normalized is None
 
 
 def test_incoming_transaction_uses_a_positive_amount() -> None:
@@ -104,9 +107,9 @@ def test_source_locator_starts_at_one(field: str, value: object) -> None:
         _transaction(**{field: value})
 
 
-def test_source_path_is_required() -> None:
+def test_source_file_is_required() -> None:
     with pytest.raises(ValidationError):
-        _transaction(source_path="")
+        _transaction(source_file="")
 
 
 def test_unknown_field_is_rejected() -> None:

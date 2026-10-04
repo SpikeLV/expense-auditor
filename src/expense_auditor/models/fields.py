@@ -101,17 +101,36 @@ def _optional_bool(value: object) -> bool | None:
     return value
 
 
-def _optional_similarity(value: object) -> float | None:
+def _optional_unit_interval(value: object, message: str) -> float | None:
     if value is None:
         return None
     if isinstance(value, bool) or not isinstance(value, int | float):
-        raise ValueError("merchant similarity must be between 0 and 1")
+        raise ValueError(message)
     if isinstance(value, float) and math.isnan(value):
-        raise ValueError("merchant similarity must be between 0 and 1")
+        raise ValueError(message)
     score = float(value)
     if score < 0 or score > 1:
-        raise ValueError("merchant similarity must be between 0 and 1")
+        raise ValueError(message)
     return score
+
+
+def _optional_similarity(value: object) -> float | None:
+    return _optional_unit_interval(value, "merchant similarity must be between 0 and 1")
+
+
+def _optional_score(value: object) -> float | None:
+    return _optional_unit_interval(value, "score must be between 0 and 1")
+
+
+def _optional_sha256(value: object) -> str | None:
+    if value is None or (isinstance(value, str) and value.strip() == ""):
+        return None
+    if not isinstance(value, str):
+        raise ValueError("file hash must be a sha-256 hex digest")
+    digest = value.strip().lower()
+    if len(digest) != 64 or any(character not in "0123456789abcdef" for character in digest):
+        raise ValueError("file hash must be a sha-256 hex digest")
+    return digest
 
 
 def _optional_day_offset(value: object) -> int | None:
@@ -134,4 +153,6 @@ RequiredPath = Annotated[Path, BeforeValidator(_required_path)]
 OptionalPositiveInt = Annotated[int | None, BeforeValidator(_optional_positive_int)]
 OptionalBool = Annotated[bool | None, BeforeValidator(_optional_bool)]
 OptionalSimilarity = Annotated[float | None, BeforeValidator(_optional_similarity)]
+OptionalScore = Annotated[float | None, BeforeValidator(_optional_score)]
+OptionalSha256 = Annotated[str | None, BeforeValidator(_optional_sha256)]
 OptionalDayOffset = Annotated[int | None, BeforeValidator(_optional_day_offset)]

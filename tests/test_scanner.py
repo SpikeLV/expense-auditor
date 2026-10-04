@@ -7,7 +7,7 @@ from pathlib import Path
 import pytest
 
 from expense_auditor.documents.scanner import ScannedDocument, scan_documents
-from expense_auditor.models import DocumentKind
+from expense_auditor.models import DocumentType
 
 
 def _touch(path: Path) -> None:
@@ -18,17 +18,17 @@ def _touch(path: Path) -> None:
 @pytest.mark.parametrize(
     ("name", "kind"),
     [
-        ("receipt.pdf", DocumentKind.PDF),
-        ("receipt.jpg", DocumentKind.JPG),
-        ("receipt.jpeg", DocumentKind.JPEG),
-        ("receipt.png", DocumentKind.PNG),
+        ("receipt.pdf", DocumentType.PDF),
+        ("receipt.jpg", DocumentType.JPG),
+        ("receipt.jpeg", DocumentType.JPEG),
+        ("receipt.png", DocumentType.PNG),
     ],
 )
-def test_supported_extensions(tmp_path: Path, name: str, kind: DocumentKind) -> None:
+def test_supported_extensions(tmp_path: Path, name: str, kind: DocumentType) -> None:
     path = tmp_path / name
     _touch(path)
 
-    assert scan_documents(tmp_path) == (ScannedDocument(path=path, kind=kind),)
+    assert scan_documents(tmp_path) == (ScannedDocument(filepath=path, document_type=kind),)
 
 
 def test_unsupported_extensions_are_ignored(tmp_path: Path) -> None:
@@ -40,8 +40,8 @@ def test_unsupported_extensions_are_ignored(tmp_path: Path) -> None:
 
     found = scan_documents(tmp_path)
 
-    assert [item.path for item in found] == [kept]
-    assert found[0].kind is DocumentKind.PNG
+    assert [item.filepath for item in found] == [kept]
+    assert found[0].document_type is DocumentType.PNG
 
 
 def test_nested_directories(tmp_path: Path) -> None:
@@ -50,7 +50,7 @@ def test_nested_directories(tmp_path: Path) -> None:
 
     found = scan_documents(tmp_path)
 
-    assert [item.path.relative_to(tmp_path).as_posix() for item in found] == [
+    assert [item.filepath.relative_to(tmp_path).as_posix() for item in found] == [
         "outer.pdf",
         "sub/deeper/leaf.png",
         "sub/inner.jpg",
@@ -66,17 +66,17 @@ def test_empty_directory(tmp_path: Path) -> None:
 @pytest.mark.parametrize(
     ("name", "kind"),
     [
-        ("Invoice.PDF", DocumentKind.PDF),
-        ("photo.Jpg", DocumentKind.JPG),
-        ("scan.JPEG", DocumentKind.JPEG),
-        ("image.PnG", DocumentKind.PNG),
+        ("Invoice.PDF", DocumentType.PDF),
+        ("photo.Jpg", DocumentType.JPG),
+        ("scan.JPEG", DocumentType.JPEG),
+        ("image.PnG", DocumentType.PNG),
     ],
 )
-def test_case_insensitive_extensions(tmp_path: Path, name: str, kind: DocumentKind) -> None:
+def test_case_insensitive_extensions(tmp_path: Path, name: str, kind: DocumentType) -> None:
     path = tmp_path / name
     _touch(path)
 
-    assert scan_documents(tmp_path) == (ScannedDocument(path=path, kind=kind),)
+    assert scan_documents(tmp_path) == (ScannedDocument(filepath=path, document_type=kind),)
 
 
 def test_deterministic_ordering(tmp_path: Path) -> None:
@@ -92,7 +92,7 @@ def test_deterministic_ordering(tmp_path: Path) -> None:
     first = scan_documents(tmp_path)
     second = scan_documents(tmp_path)
 
-    assert [item.path.relative_to(tmp_path).as_posix() for item in first] == expected
+    assert [item.filepath.relative_to(tmp_path).as_posix() for item in first] == expected
     assert second == first
 
 
@@ -104,7 +104,7 @@ def test_scan_does_not_change_file_contents(tmp_path: Path) -> None:
 
     found = scan_documents(tmp_path)
 
-    assert [item.path for item in found] == [path]
+    assert [item.filepath for item in found] == [path]
     assert path.read_bytes() == payload
     assert path.stat().st_mtime_ns == modified_at
 

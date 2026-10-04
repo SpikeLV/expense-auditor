@@ -5,24 +5,28 @@ from __future__ import annotations
 from pathlib import Path
 
 from expense_auditor.models.base import DomainModel
-from expense_auditor.models.document import DocumentKind
+from expense_auditor.models.document import DocumentType
 from expense_auditor.models.fields import RequiredPath
 
-_SUFFIX_TO_KIND: dict[str, DocumentKind] = {
-    ".pdf": DocumentKind.PDF,
-    ".jpg": DocumentKind.JPG,
-    ".jpeg": DocumentKind.JPEG,
-    ".png": DocumentKind.PNG,
+_SUFFIX_TO_TYPE: dict[str, DocumentType] = {
+    ".pdf": DocumentType.PDF,
+    ".jpg": DocumentType.JPG,
+    ".jpeg": DocumentType.JPEG,
+    ".png": DocumentType.PNG,
 }
 
-SUPPORTED_SUFFIXES: frozenset[str] = frozenset(_SUFFIX_TO_KIND)
+SUPPORTED_SUFFIXES: frozenset[str] = frozenset(_SUFFIX_TO_TYPE)
 
 
 class ScannedDocument(DomainModel):
-    """A supporting file found on disk. Its contents have not been read."""
+    """A supporting file found on disk.
 
-    path: RequiredPath
-    kind: DocumentKind
+    Its contents have not been read, so it has no document id. The id is the
+    hash of those bytes and is assigned when the file is read.
+    """
+
+    filepath: RequiredPath
+    document_type: DocumentType
 
 
 def scan_documents(root: Path) -> tuple[ScannedDocument, ...]:
@@ -42,13 +46,13 @@ def scan_documents(root: Path) -> tuple[ScannedDocument, ...]:
     for path in root.rglob("*"):
         if not path.is_file():
             continue
-        kind = _SUFFIX_TO_KIND.get(path.suffix.lower())
-        if kind is None:
+        document_type = _SUFFIX_TO_TYPE.get(path.suffix.lower())
+        if document_type is None:
             continue
-        discovered.append(ScannedDocument(path=path, kind=kind))
+        discovered.append(ScannedDocument(filepath=path, document_type=document_type))
 
     def sort_key(item: ScannedDocument) -> str:
-        return item.path.relative_to(root).as_posix()
+        return item.filepath.relative_to(root).as_posix()
 
     discovered.sort(key=sort_key)
     return tuple(discovered)

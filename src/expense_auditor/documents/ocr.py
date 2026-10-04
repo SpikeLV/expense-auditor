@@ -21,7 +21,7 @@ from PIL import Image
 from pydantic import ValidationError, model_validator
 
 from expense_auditor.models.base import DomainModel
-from expense_auditor.models.document import DocumentKind
+from expense_auditor.models.document import DocumentType
 
 logger = logging.getLogger(__name__)
 
@@ -33,9 +33,9 @@ _OCR_TIMEOUT_SECONDS = 30
 
 _SUPPORTED_SUFFIXES = frozenset(
     {
-        f".{DocumentKind.JPG.value}",
-        f".{DocumentKind.JPEG.value}",
-        f".{DocumentKind.PNG.value}",
+        f".{DocumentType.JPG.value}",
+        f".{DocumentType.JPEG.value}",
+        f".{DocumentType.PNG.value}",
     }
 )
 

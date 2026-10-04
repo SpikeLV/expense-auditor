@@ -11,6 +11,7 @@ from expense_auditor.models.base import DomainModel
 from expense_auditor.models.fields import (
     OptionalBool,
     OptionalDayOffset,
+    OptionalScore,
     OptionalSimilarity,
     RequiredText,
 )
@@ -44,11 +45,16 @@ class Match(DomainModel):
     ``documents`` is empty when ``status`` is ``MISSING`` and holds one or more
     documents otherwise. Several documents fit the same field, so a later
     multi-document matcher can store them without a new model.
+
+    ``CONFIRMED`` is accepted only when ``matching.validation`` finds
+    currency-safe amount evidence and a score at or above the configured
+    threshold. Setting ``status`` alone does not make a match confirmed.
     """
 
     transaction_id: RequiredText
     status: MatchStatus
     documents: tuple[MatchedDocument, ...] = ()
+    score: OptionalScore = None
 
     @model_validator(mode="after")
     def status_agrees_with_documents(self) -> Self:
@@ -61,4 +67,13 @@ class Match(DomainModel):
             return self
         if not self.documents:
             raise ValueError(f"{self.status.value} match requires at least one document")
+        if self.status is MatchStatus.CONFIRMED:
+            from expense_auditor.config import load_matching_settings
+            from expense_auditor.matching.validation import ensure_confirmed
+
+            ensure_confirmed(
+                score=self.score,
+                amount_exact=tuple(document.amount_exact for document in self.documents),
+                settings=load_matching_settings(),
+            )
         return self

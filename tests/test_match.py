@@ -5,6 +5,7 @@ from __future__ import annotations
 import pytest
 from pydantic import ValidationError
 
+from expense_auditor.config import load_matching_settings
 from expense_auditor.models import Match, MatchedDocument, MatchStatus
 
 
@@ -67,6 +68,7 @@ def test_confirmed_match_can_cite_several_documents() -> None:
         {
             "transaction_id": "txn-1",
             "status": MatchStatus.CONFIRMED,
+            "score": load_matching_settings().confirmed_threshold,
             "documents": [
                 _link("doc-1", amount_exact=True, merchant_similarity=1, date_delta_days=0),
                 _link("doc-2", amount_exact=True, merchant_similarity=0.8, date_delta_days=1),
@@ -133,7 +135,7 @@ def test_json_round_trip() -> None:
 def test_models_are_exported_from_the_package() -> None:
     from expense_auditor.models import (
         Document,
-        DocumentKind,
+        DocumentType,
         Match,
         MatchedDocument,
         MatchStatus,
@@ -142,7 +144,7 @@ def test_models_are_exported_from_the_package() -> None:
     )
 
     assert Document.__name__ == "Document"
-    assert DocumentKind.PDF.value == "pdf"
+    assert DocumentType.PDF.value == "pdf"
     assert Match.__name__ == "Match"
     assert MatchStatus.CONFIRMED.value == "CONFIRMED"
     assert MatchedDocument.__name__ == "MatchedDocument"
