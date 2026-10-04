@@ -58,3 +58,8 @@ warn_required_dynamic_aliases = true
 [[tool.mypy.overrides]]
 module = ["cv2", "fitz", "pymupdf"]
 ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = ["pytesseract", "pytesseract.*", "yaml"]
+ignore_missing_imports = true
+follow_imports = "skip"

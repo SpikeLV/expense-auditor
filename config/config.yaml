@@ -4,3 +4,11 @@
 paths:
   data_root: data
   reports_root: reports
+
+# Tesseract language. Use a three-letter code, or join several with +.
+# Add a code to supported_languages when that tessdata pack is installed.
+ocr:
+  language: eng+lav
+  supported_languages:
+    - eng
+    - lav
