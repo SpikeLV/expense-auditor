@@ -1,0 +1,27 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+dist/
+build/
+
+# Virtual environments and tooling
+.venv/
+venv/
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+
+# Local secrets
+.env
+
+# User financial inputs. Keep directory markers only.
+data/**
+!data/**/
+!data/**/.gitkeep
+
+# Generated reports. Keep the directory marker only.
+reports/**
+!reports/**/
+!reports/**/.gitkeep

@@ -1,0 +1,6 @@
+# Local configuration for expense-auditor V0.1.
+# No cloud services are used.
+
+paths:
+  data_root: data
+  reports_root: reports
