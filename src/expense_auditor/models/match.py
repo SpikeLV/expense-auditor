@@ -13,6 +13,7 @@ from expense_auditor.models.fields import (
     OptionalDayOffset,
     OptionalScore,
     OptionalSimilarity,
+    OptionalText,
     RequiredText,
 )
 
@@ -43,18 +44,31 @@ class Match(DomainModel):
     """Reconciliation result for a single transaction.
 
     ``documents`` is empty when ``status`` is ``MISSING`` and holds one or more
-    documents otherwise. Several documents fit the same field, so a later
-    multi-document matcher can store them without a new model.
+    documents otherwise. Several documents fit the same field, so a combination
+    of receipts can support one transaction.
 
     ``CONFIRMED`` is accepted only when ``matching.validation`` finds
     currency-safe amount evidence and a score at or above the configured
     threshold. Setting ``status`` alone does not make a match confirmed.
+    ``group_amount_exact`` means the cited documents sum to the transaction
+    in the same currency, even when no single document equals that amount.
+
+    Score components are the 0–1 signals before weights are applied. ``None``
+    means that signal was not available. ``reason`` is the deterministic
+    explanation of those signals.
     """
 
     transaction_id: RequiredText
     status: MatchStatus
     documents: tuple[MatchedDocument, ...] = ()
     score: OptionalScore = None
+    reason: OptionalText = None
+    amount_score: OptionalScore = None
+    currency_score: OptionalScore = None
+    merchant_score: OptionalScore = None
+    date_score: OptionalScore = None
+    reference_score: OptionalScore = None
+    group_amount_exact: OptionalBool = None
 
     @model_validator(mode="after")
     def status_agrees_with_documents(self) -> Self:
@@ -75,5 +89,6 @@ class Match(DomainModel):
                 score=self.score,
                 amount_exact=tuple(document.amount_exact for document in self.documents),
                 settings=load_matching_settings(),
+                group_amount_exact=self.group_amount_exact is True,
             )
         return self

@@ -12,7 +12,7 @@ from pathlib import Path
 from typing import Annotated, Self
 
 import yaml
-from pydantic import BeforeValidator, ValidationError, model_validator
+from pydantic import BeforeValidator, Field, ValidationError, model_validator
 
 from expense_auditor.documents.ocr import OcrSettings
 from expense_auditor.models.base import DomainModel
@@ -84,6 +84,88 @@ class PathSettings(DomainModel):
     reports_root: ConfigPath
 
 
+def _positive_int(value: object) -> int:
+    if isinstance(value, bool) or not isinstance(value, int) or value < 1:
+        raise ValueError("expected a positive integer")
+    return value
+
+
+PositiveInt = Annotated[int, BeforeValidator(_positive_int)]
+
+
+class ScoreWeights(DomainModel):
+    """Fractions of the 0–1 match score. They must sum to 1."""
+
+    amount: UnitThreshold
+    currency: UnitThreshold
+    merchant: UnitThreshold
+    date: UnitThreshold
+    reference: UnitThreshold
+
+    @model_validator(mode="after")
+    def weights_sum_to_one(self) -> Self:
+        total = self.amount + self.currency + self.merchant + self.date + self.reference
+        if abs(total - 1.0) > 0.000001:
+            raise ValueError("matching weights must sum to 1")
+        return self
+
+
+class DateBandSettings(DomainModel):
+    """Date-distance bands inside ``date_tolerance_days``.
+
+    A missing document date contributes no date evidence. A gap larger than
+    ``date_tolerance_days`` is compared and then scores nothing.
+    """
+
+    strong_days: NonNegativeInt = 0
+    close_days: NonNegativeInt = 1
+    near_days: NonNegativeInt = 3
+    same_day_score: UnitThreshold = 1.0
+    close_score: UnitThreshold = 0.90
+    near_score: UnitThreshold = 0.45
+    outer_score: UnitThreshold = 0.20
+
+    @model_validator(mode="after")
+    def bands_are_ordered(self) -> Self:
+        if not self.strong_days <= self.close_days <= self.near_days:
+            raise ValueError("date bands must increase")
+        return self
+
+
+class MerchantBandSettings(DomainModel):
+    """Merchant similarity bands and the cap for very short names."""
+
+    strong: UnitThreshold = 0.90
+    moderate: UnitThreshold = 0.70
+    minimum_length: PositiveInt = 4
+    short_cap: UnitThreshold = 0.35
+    token_score: UnitThreshold = 0.95
+
+    @model_validator(mode="after")
+    def bands_are_ordered(self) -> Self:
+        if self.moderate > self.strong:
+            raise ValueError("moderate merchant band cannot exceed the strong band")
+        if self.short_cap > self.moderate:
+            raise ValueError("short merchant cap cannot exceed the moderate band")
+        return self
+
+
+class CombinationSettings(DomainModel):
+    """Limits for documents that sum to one transaction."""
+
+    enabled: bool = True
+    max_documents: PositiveInt = 3
+    pool_limit: PositiveInt = 12
+
+    @model_validator(mode="after")
+    def limits_are_safe(self) -> Self:
+        if self.max_documents < 2 or self.max_documents > 5:
+            raise ValueError("combination size must be from 2 to 5 documents")
+        if self.pool_limit < self.max_documents:
+            raise ValueError("combination pool must hold at least one full combination")
+        return self
+
+
 class MatchingSettings(DomainModel):
     """Thresholds and tolerances used by matching.
 
@@ -95,11 +177,29 @@ class MatchingSettings(DomainModel):
     probable_threshold: UnitThreshold
     date_tolerance_days: NonNegativeInt
     amount_tolerance: NonNegativeDecimal
+    weights: ScoreWeights = Field(
+        default_factory=lambda: ScoreWeights(
+            amount=0.40,
+            currency=0.15,
+            merchant=0.25,
+            date=0.10,
+            reference=0.10,
+        )
+    )
+    date_bands: DateBandSettings = Field(default_factory=DateBandSettings)
+    merchant_bands: MerchantBandSettings = Field(default_factory=MerchantBandSettings)
+    combination: CombinationSettings = Field(default_factory=CombinationSettings)
+    reference_minimum_length: PositiveInt = 5
 
     @model_validator(mode="after")
     def thresholds_are_ordered(self) -> Self:
         if self.probable_threshold > self.confirmed_threshold:
             raise ValueError("probable threshold cannot exceed confirmed threshold")
+        if self.date_bands.near_days > self.date_tolerance_days:
+            raise ValueError("date bands must stay inside date_tolerance_days")
+        amount_and_currency = self.weights.amount + self.weights.currency
+        if amount_and_currency >= self.probable_threshold:
+            raise ValueError("amount and currency alone must stay below the probable threshold")
         return self
 
 

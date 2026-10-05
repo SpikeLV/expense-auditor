@@ -49,15 +49,19 @@ def ensure_confirmed(
     score: float | None,
     amount_exact: Sequence[bool | None],
     settings: MatchingSettings,
+    group_amount_exact: bool = False,
 ) -> None:
     """Reject a confirmed match that lacks currency-safe amount evidence.
 
     Every cited document must have ``amount_exact`` set from
-    ``currency_safe_amount_equal``. The score must be present and at least
-    ``settings.confirmed_threshold``.
+    ``currency_safe_amount_equal``, unless ``group_amount_exact`` says the
+    documents were checked together and their total matches. The score must
+    be present and at least ``settings.confirmed_threshold``.
     """
     flags = tuple(amount_exact)
-    if not flags or any(flag is not True for flag in flags):
+    if not flags:
+        raise MatchValidationError("confirmed match requires a currency-safe exact amount")
+    if not group_amount_exact and any(flag is not True for flag in flags):
         raise MatchValidationError("confirmed match requires a currency-safe exact amount")
     if score is None:
         raise MatchValidationError("confirmed match requires a score")

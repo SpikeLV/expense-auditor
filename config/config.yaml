@@ -7,11 +7,41 @@ paths:
 
 # Matching thresholds. Scoring reads these values and does not keep copies.
 # amount_tolerance is a decimal string. Zero means amounts must be equal.
+# Weights are fractions of the 0–1 score and must sum to 1.
+# Amount plus currency is 0.55, below the probable threshold, so an equal
+# amount alone cannot confirm or even mark a match probable.
+# A strong merchant and a same-day date are what carry an exact amount over
+# the confirmed threshold.
 matching:
   confirmed_threshold: 0.85
   probable_threshold: 0.60
   date_tolerance_days: 5
   amount_tolerance: "0.00"
+  weights:
+    amount: 0.40
+    currency: 0.15
+    merchant: 0.25
+    date: 0.10
+    reference: 0.10
+  date_bands:
+    strong_days: 0
+    close_days: 1
+    near_days: 3
+    same_day_score: 1.0
+    close_score: 0.90
+    near_score: 0.45
+    outer_score: 0.20
+  merchant_bands:
+    strong: 0.90
+    moderate: 0.70
+    minimum_length: 4
+    short_cap: 0.35
+    token_score: 0.95
+  combination:
+    enabled: true
+    max_documents: 3
+    pool_limit: 12
+  reference_minimum_length: 5
 
 # Tesseract language. Use a three-letter code, or join several with +.
 # Add a code to supported_languages when that tessdata pack is installed.

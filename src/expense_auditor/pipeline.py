@@ -59,7 +59,7 @@ _V01_PIPELINE: tuple[PipelineStage, ...] = (
         order=7,
         name="match_transactions",
         owner="matching",
-        implemented=False,
+        implemented=True,
     ),
     PipelineStage(
         order=8,
