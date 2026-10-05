@@ -162,12 +162,48 @@ def test_transaction_ids_and_source_files_are_stable() -> None:
     first_pass = parser.parse(_SAMPLE)
     second_pass = parser.parse(_SAMPLE)
 
+    assert first_pass == second_pass
     assert [transaction.id for transaction in first_pass] == [
         transaction.id for transaction in second_pass
     ]
     assert all(transaction.source_file == _SAMPLE for transaction in first_pass)
     assert all(transaction.currency == "EUR" for transaction in first_pass)
     assert len({transaction.id for transaction in first_pass}) == len(first_pass)
+
+
+def test_page_boundaries_keep_each_payment_on_its_own_row(
+    transactions: list[Transaction],
+) -> None:
+    by_page: dict[int, list[Transaction]] = {}
+    for transaction in transactions:
+        assert transaction.source_page is not None
+        by_page.setdefault(transaction.source_page, []).append(transaction)
+
+    assert set(by_page) == {1, 2, 3, 4, 5, 6, 7}
+    end_of_page_1 = by_page[1][-1]
+    start_of_page_2 = by_page[2][0]
+    end_of_page_6 = by_page[6][-1]
+    start_of_page_7 = by_page[7][0]
+
+    assert end_of_page_1.posted_date == date(2026, 9, 5)
+    assert end_of_page_1.direction is TransactionDirection.OUTGOING
+    assert end_of_page_1.amount == Decimal("46.66")
+    assert end_of_page_1.merchant_raw == "BITE LATVIJA SIA"
+    assert start_of_page_2.posted_date == date(2026, 9, 5)
+    assert start_of_page_2.direction is TransactionDirection.OUTGOING
+    assert start_of_page_2.amount == Decimal("103.51")
+    assert start_of_page_2.merchant_raw == "AMAZON* NV3LD00P4"
+    assert end_of_page_1.description != start_of_page_2.description
+
+    assert end_of_page_6.posted_date == date(2026, 9, 30)
+    assert end_of_page_6.direction is TransactionDirection.OUTGOING
+    assert end_of_page_6.amount == Decimal("34.81")
+    assert end_of_page_6.merchant_raw == "ALIEXPRESS.COM"
+    assert start_of_page_7.posted_date == date(2026, 9, 30)
+    assert start_of_page_7.direction is TransactionDirection.OUTGOING
+    assert start_of_page_7.amount == Decimal("67.31")
+    assert start_of_page_7.merchant_raw == "aliexpress"
+    assert end_of_page_6.description != start_of_page_7.description
 
 
 def test_a_different_pdf_is_rejected(tmp_path: Path) -> None:
