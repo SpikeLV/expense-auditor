@@ -459,5 +459,5 @@ def test_v01_pipeline_names_each_boundary() -> None:
         True,
         True,
         True,
-        False,
+        True,
     ]

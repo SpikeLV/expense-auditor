@@ -60,6 +60,6 @@ module = ["cv2", "fitz", "pymupdf"]
 ignore_missing_imports = true
 
 [[tool.mypy.overrides]]
-module = ["pytesseract", "pytesseract.*", "yaml"]
+module = ["pytesseract", "pytesseract.*", "yaml", "openpyxl", "openpyxl.*"]
 ignore_missing_imports = true
 follow_imports = "skip"

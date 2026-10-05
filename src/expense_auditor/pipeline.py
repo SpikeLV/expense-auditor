@@ -71,7 +71,7 @@ _V01_PIPELINE: tuple[PipelineStage, ...] = (
         order=9,
         name="render_reports",
         owner="reporting",
-        implemented=False,
+        implemented=True,
     ),
 )
 
