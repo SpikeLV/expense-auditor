@@ -47,7 +47,7 @@ _V01_PIPELINE: tuple[PipelineStage, ...] = (
         order=5,
         name="parse_bank_statement",
         owner="bank",
-        implemented=False,
+        implemented=True,
     ),
     PipelineStage(
         order=6,
